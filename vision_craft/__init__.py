@@ -7,7 +7,7 @@ face detection and privacy blurring, invisible cloaking, video frame extraction,
 and an interactive live CV studio.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __author__ = "ouns-ous"
 
 from vision_craft.filters import (
@@ -64,6 +64,10 @@ from vision_craft.optical_flow import (
 from vision_craft.morphology import (
     MorphologyEngine,
 )
+from vision_craft.benchmark import (
+    VisionBenchmark,
+    BenchmarkScore,
+)
 
 __all__ = [
     "ImageFilter",
@@ -92,4 +96,6 @@ __all__ = [
     "OpticalFlowAnalyzer",
     "FlowResult",
     "MorphologyEngine",
+    "VisionBenchmark",
+    "BenchmarkScore",
 ]

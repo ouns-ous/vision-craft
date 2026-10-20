@@ -25,6 +25,7 @@ from vision_craft.stitcher import ImageStitcher
 from vision_craft.features import FeatureMatcher
 from vision_craft.optical_flow import OpticalFlowAnalyzer
 from vision_craft.morphology import MorphologyEngine
+from vision_craft.benchmark import VisionBenchmark
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -137,6 +138,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_morph.add_argument("-k", "--kernel-size", type=int, default=5, help="Structuring element size")
     p_morph.add_argument("-s", "--shape", default="rect", choices=["rect", "ellipse", "cross"], help="Kernel shape")
     p_morph.add_argument("-n", "--iterations", type=int, default=1, help="Number of iterations")
+
+    # 16. Benchmark & Latency Profiler
+    p_bench = subparsers.add_parser("benchmark", help="Profile FPS, latency, and throughput across vision pipelines")
+    p_bench.add_argument("-r", "--resolution", default="480p", choices=["480p", "720p", "1080p"], help="Resolution tier")
+    p_bench.add_argument("-n", "--iterations", type=int, default=15, help="Benchmark sample iterations")
+    p_bench.add_argument("--json", help="Optional path to export benchmark results JSON")
 
     # 10. Studio
     p_studio = subparsers.add_parser("studio", help="Launch interactive live CV studio")
@@ -500,6 +507,18 @@ def main(args: Optional[List[str]] = None) -> int:
             Path(parsed.output).parent.mkdir(parents=True, exist_ok=True)
             cv2.imwrite(parsed.output, res)
             print(f"[OK] Morphological '{parsed.operation}' applied -> {parsed.output}")
+
+        elif parsed.command == "benchmark":
+            print(f"Running VisionCraft benchmarks for {parsed.resolution} ({parsed.iterations} iterations)...")
+            scores = VisionBenchmark.run_benchmark(resolution=parsed.resolution, iterations=parsed.iterations)
+            print("\n" + VisionBenchmark.format_markdown_table(scores) + "\n")
+            if parsed.json:
+                Path(parsed.json).parent.mkdir(parents=True, exist_ok=True)
+                with open(parsed.json, "w", encoding="utf-8") as f:
+                    import json
+                    from dataclasses import asdict
+                    json.dump([asdict(s) for s in scores], f, indent=2)
+                print(f"[OK] Benchmark JSON report saved -> {parsed.json}")
 
         elif parsed.command == "studio":
             src = int(parsed.source) if parsed.source.isdigit() else parsed.source

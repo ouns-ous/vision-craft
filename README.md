@@ -3,10 +3,10 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![OpenCV](https://img.shields.io/badge/opencv-5.0%20%7C%204.8+-green.svg)](https://opencv.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-37%20passed-brightgreen.svg)]()
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)]()
+[![Tests](https://img.shields.io/badge/tests-50%20passed-brightgreen.svg)]()
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)]()
 
-**VisionCraft** is a modular, high-performance Computer Vision Studio and processing engine built on top of OpenCV and NumPy. It unifies advanced digital image filtering, geometric contour classification, multi-color centroid tracking with fading motion trails, background subtraction with accumulated motion heatmaps, deep-learning face detection with privacy obfuscation, chroma-key/invisible cloaking, smart document scanning & 4-point perspective rectification, QR code encoding/scanning, video frame extractors, and an interactive live CV studio.
+**VisionCraft** is a modular, high-performance Computer Vision Studio and processing engine built on top of OpenCV and NumPy. It unifies advanced digital image filtering, geometric contour classification, multi-color centroid tracking, background subtraction with accumulated motion heatmaps, deep-learning face detection with privacy obfuscation, chroma-key/invisible cloaking, smart document scanning, QR code encoding/decoding, panorama stitching, feature matching & homography localization, dense optical flow vector fields, mathematical morphology, and automated performance profiling.
 
 ---
 
