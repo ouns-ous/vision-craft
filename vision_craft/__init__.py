@@ -57,6 +57,10 @@ from vision_craft.features import (
     FeatureMatcher,
     MatchResult,
 )
+from vision_craft.optical_flow import (
+    OpticalFlowAnalyzer,
+    FlowResult,
+)
 
 __all__ = [
     "ImageFilter",
@@ -82,4 +86,6 @@ __all__ = [
     "ImageStitcher",
     "FeatureMatcher",
     "MatchResult",
+    "OpticalFlowAnalyzer",
+    "FlowResult",
 ]

@@ -23,6 +23,7 @@ from vision_craft.document import DocumentScanner
 from vision_craft.qrcode_scanner import QRCodeScanner
 from vision_craft.stitcher import ImageStitcher
 from vision_craft.features import FeatureMatcher
+from vision_craft.optical_flow import OpticalFlowAnalyzer
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -119,6 +120,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_match.add_argument("-s", "--scene", required=True, help="Scene image containing query object")
     p_match.add_argument("-o", "--output", required=True, help="Output match visualization image path")
     p_match.add_argument("--algo", default="orb", choices=["orb", "sift"], help="Feature algorithm")
+
+    # 14. Optical Flow & Motion Vector Field
+    p_flow = subparsers.add_parser("flow", help="Compute dense or vector field optical flow on video")
+    p_flow.add_argument("-i", "--input", required=True, help="Input video path")
+    p_flow.add_argument("-o", "--output", required=True, help="Output flow video path")
+    p_flow.add_argument("-m", "--mode", default="dense", choices=["dense", "vectors"], help="Visualization mode")
+    p_flow.add_argument("--max-frames", type=int, help="Limit frames to process")
 
     # 10. Studio
     p_studio = subparsers.add_parser("studio", help="Launch interactive live CV studio")
@@ -461,6 +469,11 @@ def main(args: Optional[List[str]] = None) -> int:
             else:
                 print("[Info] Homography not found (insufficient RANSAC inliers)")
             print(f"[OK] Match visualization saved -> {parsed.output}")
+
+        elif parsed.command == "flow":
+            analyzer = OpticalFlowAnalyzer()
+            count = analyzer.process_video(parsed.input, parsed.output, mode=parsed.mode, max_frames=parsed.max_frames)
+            print(f"[OK] Optical flow video generated ({count} frames) -> {parsed.output}")
 
         elif parsed.command == "studio":
             src = int(parsed.source) if parsed.source.isdigit() else parsed.source
