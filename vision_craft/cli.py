@@ -22,6 +22,7 @@ from vision_craft.studio import VisionStudio
 from vision_craft.document import DocumentScanner
 from vision_craft.qrcode_scanner import QRCodeScanner
 from vision_craft.stitcher import ImageStitcher
+from vision_craft.features import FeatureMatcher
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -111,6 +112,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_stitch.add_argument("--inputs", nargs="+", required=True, help="List of overlapping image files")
     p_stitch.add_argument("-o", "--output", required=True, help="Destination panorama output path")
     p_stitch.add_argument("--no-crop", action="store_true", help="Do not crop irregular black boundary borders")
+
+    # 13. Feature Matching & Homography Alignment
+    p_match = subparsers.add_parser("match", help="Match features and localize object in scene")
+    p_match.add_argument("-q", "--query", required=True, help="Query target object image")
+    p_match.add_argument("-s", "--scene", required=True, help="Scene image containing query object")
+    p_match.add_argument("-o", "--output", required=True, help="Output match visualization image path")
+    p_match.add_argument("--algo", default="orb", choices=["orb", "sift"], help="Feature algorithm")
 
     # 10. Studio
     p_studio = subparsers.add_parser("studio", help="Launch interactive live CV studio")
@@ -442,6 +450,17 @@ def main(args: Optional[List[str]] = None) -> int:
             else:
                 print(f"[Error] Stitching failed: {msg}", file=sys.stderr)
                 return 1
+
+        elif parsed.command == "match":
+            matcher = FeatureMatcher(algorithm=parsed.algo)
+            res = matcher.match_files(parsed.query, parsed.scene, output_path=parsed.output)
+            print(f"[OK] Keypoints - Query: {res.num_keypoints_query}, Scene: {res.num_keypoints_scene}")
+            print(f"[OK] Good Matches: {res.num_good_matches}")
+            if res.scene_corners is not None:
+                print(f"[OK] Object localized with Homography at: {res.scene_corners.tolist()}")
+            else:
+                print("[Info] Homography not found (insufficient RANSAC inliers)")
+            print(f"[OK] Match visualization saved -> {parsed.output}")
 
         elif parsed.command == "studio":
             src = int(parsed.source) if parsed.source.isdigit() else parsed.source
