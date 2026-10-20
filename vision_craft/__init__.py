@@ -50,6 +50,9 @@ from vision_craft.qrcode_scanner import (
     QRCodeScanner,
     QRScanResult,
 )
+from vision_craft.stitcher import (
+    ImageStitcher,
+)
 
 __all__ = [
     "ImageFilter",
@@ -72,4 +75,5 @@ __all__ = [
     "ScannedDocument",
     "QRCodeScanner",
     "QRScanResult",
+    "ImageStitcher",
 ]

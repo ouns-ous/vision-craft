@@ -21,6 +21,7 @@ from vision_craft.synthetic import SyntheticGenerator
 from vision_craft.studio import VisionStudio
 from vision_craft.document import DocumentScanner
 from vision_craft.qrcode_scanner import QRCodeScanner
+from vision_craft.stitcher import ImageStitcher
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -104,6 +105,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_qr.add_argument("-o", "--output", help="Output path for annotated scan or generated QR image")
     p_qr.add_argument("-g", "--generate", help="Text or URL to generate QR code for")
     p_qr.add_argument("--json", help="Optional path to export detected QR metadata JSON")
+
+    # 12. Panorama & Image Stitcher
+    p_stitch = subparsers.add_parser("stitch", help="Stitch multiple overlapping images into a panorama")
+    p_stitch.add_argument("--inputs", nargs="+", required=True, help="List of overlapping image files")
+    p_stitch.add_argument("-o", "--output", required=True, help="Destination panorama output path")
+    p_stitch.add_argument("--no-crop", action="store_true", help="Do not crop irregular black boundary borders")
 
     # 10. Studio
     p_studio = subparsers.add_parser("studio", help="Launch interactive live CV studio")
@@ -422,6 +429,19 @@ def main(args: Optional[List[str]] = None) -> int:
                         import json
                         json.dump({"total": len(manifest), "detections": manifest}, f, indent=2)
                     print(f"[OK] Manifest JSON saved -> {parsed.json}")
+
+        elif parsed.command == "stitch":
+            stitcher = ImageStitcher()
+            success, pano, msg = stitcher.stitch_files(
+                parsed.inputs,
+                output_path=parsed.output,
+                crop_borders=not parsed.no_crop,
+            )
+            if success:
+                print(f"[OK] Panorama generated successfully -> {parsed.output} ({msg})")
+            else:
+                print(f"[Error] Stitching failed: {msg}", file=sys.stderr)
+                return 1
 
         elif parsed.command == "studio":
             src = int(parsed.source) if parsed.source.isdigit() else parsed.source
