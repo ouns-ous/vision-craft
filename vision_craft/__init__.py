@@ -61,6 +61,9 @@ from vision_craft.optical_flow import (
     OpticalFlowAnalyzer,
     FlowResult,
 )
+from vision_craft.morphology import (
+    MorphologyEngine,
+)
 
 __all__ = [
     "ImageFilter",
@@ -88,4 +91,5 @@ __all__ = [
     "MatchResult",
     "OpticalFlowAnalyzer",
     "FlowResult",
+    "MorphologyEngine",
 ]

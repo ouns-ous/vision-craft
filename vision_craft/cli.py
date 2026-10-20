@@ -24,6 +24,7 @@ from vision_craft.qrcode_scanner import QRCodeScanner
 from vision_craft.stitcher import ImageStitcher
 from vision_craft.features import FeatureMatcher
 from vision_craft.optical_flow import OpticalFlowAnalyzer
+from vision_craft.morphology import MorphologyEngine
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -127,6 +128,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_flow.add_argument("-o", "--output", required=True, help="Output flow video path")
     p_flow.add_argument("-m", "--mode", default="dense", choices=["dense", "vectors"], help="Visualization mode")
     p_flow.add_argument("--max-frames", type=int, help="Limit frames to process")
+
+    # 15. Mathematical Morphology
+    p_morph = subparsers.add_parser("morph", help="Apply mathematical morphology operations")
+    p_morph.add_argument("-i", "--input", required=True, help="Input image path")
+    p_morph.add_argument("-o", "--output", required=True, help="Output image path")
+    p_morph.add_argument("-op", "--operation", required=True, choices=["erode", "dilate", "open", "close", "gradient", "tophat", "blackhat", "skeleton"], help="Morphological operator")
+    p_morph.add_argument("-k", "--kernel-size", type=int, default=5, help="Structuring element size")
+    p_morph.add_argument("-s", "--shape", default="rect", choices=["rect", "ellipse", "cross"], help="Kernel shape")
+    p_morph.add_argument("-n", "--iterations", type=int, default=1, help="Number of iterations")
 
     # 10. Studio
     p_studio = subparsers.add_parser("studio", help="Launch interactive live CV studio")
@@ -474,6 +484,22 @@ def main(args: Optional[List[str]] = None) -> int:
             analyzer = OpticalFlowAnalyzer()
             count = analyzer.process_video(parsed.input, parsed.output, mode=parsed.mode, max_frames=parsed.max_frames)
             print(f"[OK] Optical flow video generated ({count} frames) -> {parsed.output}")
+
+        elif parsed.command == "morph":
+            img = cv2.imread(parsed.input)
+            if img is None:
+                print(f"[Error] Failed to read image: {parsed.input}", file=sys.stderr)
+                return 1
+            res = MorphologyEngine.apply_operation(
+                img,
+                op_name=parsed.operation,
+                ksize=parsed.kernel_size,
+                shape=parsed.shape,
+                iterations=parsed.iterations,
+            )
+            Path(parsed.output).parent.mkdir(parents=True, exist_ok=True)
+            cv2.imwrite(parsed.output, res)
+            print(f"[OK] Morphological '{parsed.operation}' applied -> {parsed.output}")
 
         elif parsed.command == "studio":
             src = int(parsed.source) if parsed.source.isdigit() else parsed.source
