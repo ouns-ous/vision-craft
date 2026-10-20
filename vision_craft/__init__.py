@@ -7,7 +7,7 @@ face detection and privacy blurring, invisible cloaking, video frame extraction,
 and an interactive live CV studio.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "ouns-ous"
 
 from vision_craft.filters import (
@@ -42,6 +42,14 @@ from vision_craft.video_tools import (
 from vision_craft.synthetic import (
     SyntheticGenerator,
 )
+from vision_craft.document import (
+    DocumentScanner,
+    ScannedDocument,
+)
+from vision_craft.qrcode_scanner import (
+    QRCodeScanner,
+    QRScanResult,
+)
 
 __all__ = [
     "ImageFilter",
@@ -60,4 +68,8 @@ __all__ = [
     "VideoSplitter",
     "get_video_metadata",
     "SyntheticGenerator",
+    "DocumentScanner",
+    "ScannedDocument",
+    "QRCodeScanner",
+    "QRScanResult",
 ]

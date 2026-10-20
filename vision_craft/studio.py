@@ -16,6 +16,7 @@ from vision_craft.motion import MotionTracker
 from vision_craft.detection import FaceDetector
 from vision_craft.cloak import InvisibleCloak
 from vision_craft.synthetic import SyntheticGenerator
+from vision_craft.qrcode_scanner import QRCodeScanner
 
 
 class VisionStudio:
@@ -37,6 +38,7 @@ class VisionStudio:
         self.motion_tracker = MotionTracker()
         self.face_detector = FaceDetector()
         self.cloak = InvisibleCloak(cloak_color="green")
+        self.qr_scanner = QRCodeScanner()
 
         # Interactive state flags
         self.active_filter = "original"
@@ -47,6 +49,7 @@ class VisionStudio:
         self.mode_face = False
         self.mode_anonymize = False
         self.mode_cloak = False
+        self.mode_qr = False
         self.show_hud = True
         self.paused = False
 
@@ -102,7 +105,12 @@ class VisionStudio:
         if self.mode_cloak:
             processed = self.cloak.process_frame(processed)
 
-        # 7. Heads-Up Display (HUD)
+        # 7. QR Code Scanner overlay
+        if self.mode_qr:
+            qrs = self.qr_scanner.scan(frame)
+            processed = self.qr_scanner.draw_results(processed, qrs)
+
+        # 8. Heads-Up Display (HUD)
         if self.show_hud:
             h, w = processed.shape[:2]
             hud_bg = (20, 20, 20)
@@ -114,7 +122,8 @@ class VisionStudio:
                 f"Color [C]: {'ON' if self.mode_color else 'OFF'} | "
                 f"Motion [M]: {'ON' if self.mode_motion else 'OFF'} | "
                 f"Face [F]: {'ON' if self.mode_face else 'OFF'} | "
-                f"Blur [B]: {'ON' if self.mode_anonymize else 'OFF'}"
+                f"Blur [B]: {'ON' if self.mode_anonymize else 'OFF'} | "
+                f"QR [R]: {'ON' if self.mode_qr else 'OFF'}"
             )
             cv2.putText(
                 processed,
@@ -189,6 +198,8 @@ class VisionStudio:
                         self.mode_anonymize = not self.mode_anonymize
                     elif key == ord("k"):
                         self.mode_cloak = not self.mode_cloak
+                    elif key == ord("r"):
+                        self.mode_qr = not self.mode_qr
                     elif key == ord("h"):
                         self.show_hud = not self.show_hud
                     elif key == ord(" "):

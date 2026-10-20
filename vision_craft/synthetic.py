@@ -148,3 +148,49 @@ class SyntheticGenerator:
 
         writer.release()
         return out_path
+
+    @staticmethod
+    def generate_document_sample(width: int = 640, height: int = 480) -> np.ndarray:
+        """Create a synthetic tilted document on a textured background with text and colored stamps."""
+        # Textured wooden/dark table background
+        bg = np.zeros((height, width, 3), dtype=np.uint8)
+        bg[:, :] = (35, 45, 60)
+        # Add background grain/stripes
+        for y in range(0, height, 15):
+            cv2.line(bg, (0, y), (width, y), (40, 50, 70), 2)
+
+        # Angled document polygon
+        pts_src = np.array([
+            [120, 60],
+            [540, 110],
+            [480, 420],
+            [80, 360]
+        ], np.int32)
+
+        # Fill white page
+        cv2.fillPoly(bg, [pts_src], (245, 248, 250))
+        # Draw document border
+        cv2.polylines(bg, [pts_src], isClosed=True, color=(180, 190, 200), thickness=2)
+
+        # Draw a red official stamp inside the document
+        cv2.circle(bg, (220, 220), 28, (30, 30, 200), 3)
+        cv2.circle(bg, (220, 220), 20, (30, 30, 200), 2)
+
+        # Draw simulated text lines
+        lines = [
+            ((150, 130), (380, 160)),
+            ((145, 160), (450, 200)),
+            ((140, 270), (400, 305)),
+            ((135, 300), (350, 330)),
+        ]
+        for start, end in lines:
+            cv2.line(bg, start, end, (50, 50, 60), 3)
+
+        return bg
+
+    @staticmethod
+    def generate_qrcode_sample(data: str = "https://github.com/ouns-ous/vision-craft") -> np.ndarray:
+        """Generate a clean synthetic QR code image with quiet zone."""
+        from vision_craft.qrcode_scanner import QRCodeScanner
+        scanner = QRCodeScanner()
+        return scanner.generate(data, scale=6, border=4)

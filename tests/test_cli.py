@@ -71,3 +71,36 @@ def test_cli_motion_and_split(tmp_path: Path):
     ])
     assert code == 0
     assert split_out.exists()
+
+
+def test_cli_scan_and_qrcode(tmp_path: Path):
+    # 1. QR Code Generation
+    qr_out = tmp_path / "generated_qr.png"
+    code = main(["qrcode", "-g", "https://github.com/ouns-ous/vision-craft", "-o", str(qr_out)])
+    assert code == 0
+    assert qr_out.exists()
+
+    # 2. QR Code Scanning & JSON export
+    qr_annotated = tmp_path / "qr_annotated.png"
+    qr_json = tmp_path / "qr_manifest.json"
+    code = main(["qrcode", "-i", str(qr_out), "-o", str(qr_annotated), "--json", str(qr_json)])
+    assert code == 0
+    assert qr_annotated.exists()
+    assert qr_json.exists()
+
+    # 3. Document Scanning
+    doc_sample = tmp_path / "doc_sample.png"
+    cv2.imwrite(str(doc_sample), SyntheticGenerator.generate_document_sample())
+
+    doc_scanned = tmp_path / "doc_scanned.png"
+    doc_bounds = tmp_path / "doc_bounds.png"
+    code = main([
+        "scan",
+        "-i", str(doc_sample),
+        "-o", str(doc_scanned),
+        "-m", "bw",
+        "--bounds-output", str(doc_bounds)
+    ])
+    assert code == 0
+    assert doc_scanned.exists()
+    assert doc_bounds.exists()

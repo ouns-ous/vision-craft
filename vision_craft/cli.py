@@ -19,6 +19,8 @@ from vision_craft.cloak import InvisibleCloak
 from vision_craft.video_tools import VideoFrameExtractor, VideoSplitter, get_video_metadata
 from vision_craft.synthetic import SyntheticGenerator
 from vision_craft.studio import VisionStudio
+from vision_craft.document import DocumentScanner
+from vision_craft.qrcode_scanner import QRCodeScanner
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -87,6 +89,21 @@ def build_parser() -> argparse.ArgumentParser:
     # 9. Generate Demo
     p_demo = subparsers.add_parser("generate-demo", help="Generate synthetic test assets")
     p_demo.add_argument("-o", "--output-dir", default="demo_assets", help="Directory for demo assets")
+
+    # 10. Document Scanner & Perspective Warper
+    p_scan = subparsers.add_parser("scan", help="Smart document scanner & perspective warper")
+    p_scan.add_argument("-i", "--input", required=True, help="Input document image path")
+    p_scan.add_argument("-o", "--output", required=True, help="Scanned output image path")
+    p_scan.add_argument("-m", "--mode", default="color_enhanced", choices=["color_enhanced", "bw", "gray", "original"], help="Enhancement mode")
+    p_scan.add_argument("--corners", help="Explicit comma-separated corners: x1,y1,x2,y2,x3,y3,x4,y4")
+    p_scan.add_argument("--bounds-output", help="Optional path to save original image with detected document boundary")
+
+    # 11. QR Code Scanner & Generator
+    p_qr = subparsers.add_parser("qrcode", help="Detect, decode, or generate QR codes")
+    p_qr.add_argument("-i", "--input", help="Input image or video path to scan")
+    p_qr.add_argument("-o", "--output", help="Output path for annotated scan or generated QR image")
+    p_qr.add_argument("-g", "--generate", help="Text or URL to generate QR code for")
+    p_qr.add_argument("--json", help="Optional path to export detected QR metadata JSON")
 
     # 10. Studio
     p_studio = subparsers.add_parser("studio", help="Launch interactive live CV studio")
@@ -313,9 +330,98 @@ def main(args: Optional[List[str]] = None) -> int:
             cv2.imwrite(str(out_dir / "shapes_sample.png"), SyntheticGenerator.generate_shapes_image())
             cv2.imwrite(str(out_dir / "colors_sample.png"), SyntheticGenerator.generate_color_palette_image())
             cv2.imwrite(str(out_dir / "face_sample.png"), SyntheticGenerator.generate_face_like_image())
+            cv2.imwrite(str(out_dir / "document_sample.png"), SyntheticGenerator.generate_document_sample())
+            cv2.imwrite(str(out_dir / "qrcode_sample.png"), SyntheticGenerator.generate_qrcode_sample())
             SyntheticGenerator.generate_motion_video(out_dir / "motion_sample.mp4", num_frames=90)
             SyntheticGenerator.generate_tracking_video(out_dir / "tracking_sample.mp4", num_frames=90)
             print(f"[OK] Synthetic demo assets generated in: {out_dir}")
+
+        elif parsed.command == "scan":
+            img = cv2.imread(parsed.input)
+            if img is None:
+                print(f"[Error] Failed to read image: {parsed.input}", file=sys.stderr)
+                return 1
+
+            scanner = DocumentScanner()
+            if parsed.corners:
+                coords = [float(c.strip()) for c in parsed.corners.split(",")]
+                if len(coords) != 8:
+                    print("[Error] --corners must have 8 values: x1,y1,x2,y2,x3,y3,x4,y4", file=sys.stderr)
+                    return 1
+                corners = np.array(coords, dtype=np.float32).reshape(4, 2)
+                warped = scanner.four_point_transform(img, corners)
+                enhanced = scanner.enhance(warped, mode=parsed.mode)
+            else:
+                doc = scanner.scan(img, mode=parsed.mode)
+                corners = doc.corners
+                warped = doc.warped
+                enhanced = doc.enhanced
+
+            Path(parsed.output).parent.mkdir(parents=True, exist_ok=True)
+            cv2.imwrite(parsed.output, enhanced)
+            print(f"[OK] Document scanned ({parsed.mode}) -> {parsed.output}")
+
+            if parsed.bounds_output:
+                bounds_img = scanner.draw_document_bounds(img, corners)
+                Path(parsed.bounds_output).parent.mkdir(parents=True, exist_ok=True)
+                cv2.imwrite(parsed.bounds_output, bounds_img)
+                print(f"[OK] Document bounds overlay saved -> {parsed.bounds_output}")
+
+        elif parsed.command == "qrcode":
+            scanner = QRCodeScanner()
+
+            # Generation mode
+            if parsed.generate:
+                if not parsed.output:
+                    print("[Error] --output is required when generating a QR code", file=sys.stderr)
+                    return 1
+                qr_img = scanner.generate(parsed.generate)
+                Path(parsed.output).parent.mkdir(parents=True, exist_ok=True)
+                cv2.imwrite(parsed.output, qr_img)
+                print(f"[OK] QR Code generated for '{parsed.generate}' -> {parsed.output}")
+                return 0
+
+            # Scan mode
+            if not parsed.input:
+                print("[Error] Either --input or --generate must be specified for qrcode command", file=sys.stderr)
+                return 1
+
+            img = cv2.imread(parsed.input)
+            if img is not None:
+                results = scanner.scan(img)
+                print(f"[OK] Detected {len(results)} QR codes.")
+                for idx, r in enumerate(results, 1):
+                    print(f"  [{idx}] Data: {r.data} (Box: {r.bounding_box})")
+
+                if parsed.output:
+                    annotated = scanner.draw_results(img, results)
+                    Path(parsed.output).parent.mkdir(parents=True, exist_ok=True)
+                    cv2.imwrite(parsed.output, annotated)
+                    print(f"[OK] Annotated image saved -> {parsed.output}")
+
+                if parsed.json:
+                    manifest = [
+                        {"data": r.data, "bounding_box": list(r.bounding_box), "polygon": r.polygon.tolist()}
+                        for r in results
+                    ]
+                    Path(parsed.json).parent.mkdir(parents=True, exist_ok=True)
+                    with open(parsed.json, "w", encoding="utf-8") as f:
+                        import json
+                        json.dump({"total": len(results), "codes": manifest}, f, indent=2)
+                    print(f"[OK] Manifest JSON saved -> {parsed.json}")
+            else:
+                # Video scanning
+                manifest = scanner.scan_video(parsed.input)
+                print(f"[OK] Scanned video. Found {len(manifest)} unique QR detections.")
+                for item in manifest:
+                    print(f"  Frame {item['frame']} ({item['timestamp_sec']}s): {item['data']}")
+
+                if parsed.json:
+                    Path(parsed.json).parent.mkdir(parents=True, exist_ok=True)
+                    with open(parsed.json, "w", encoding="utf-8") as f:
+                        import json
+                        json.dump({"total": len(manifest), "detections": manifest}, f, indent=2)
+                    print(f"[OK] Manifest JSON saved -> {parsed.json}")
 
         elif parsed.command == "studio":
             src = int(parsed.source) if parsed.source.isdigit() else parsed.source
